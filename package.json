@@ -1,0 +1,36 @@
+{
+  "name": "sistem_za_evidencija",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev --turbopack",
+    "build": "next build --turbopack",
+    "start": "next start",
+    "lint": "eslint"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.39.0",
+    "@zxing/library": "^0.20.0",
+    "bcryptjs": "^2.4.3",
+    "jose": "^5.2.0",
+    "next": "15.5.4",
+    "qrcode": "^1.5.3",
+    "react": "19.1.0",
+    "react-dom": "19.1.0",
+    "uuid": "^9.0.1"
+  },
+  "devDependencies": {
+    "@eslint/eslintrc": "^3",
+    "@tailwindcss/postcss": "^4",
+    "@types/bcryptjs": "^2.4.6",
+    "@types/node": "20.19.19",
+    "@types/qrcode": "^1.5.5",
+    "@types/react": "18.3.26",
+    "@types/react-dom": "^18.2.18",
+    "@types/uuid": "^9.0.7",
+    "eslint": "^9",
+    "eslint-config-next": "15.5.4",
+    "tailwindcss": "^4",
+    "typescript": "^5.3.3"
+  }
+}
