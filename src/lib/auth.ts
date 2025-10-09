@@ -41,20 +41,39 @@ export async function verifyToken(token: string): Promise<ProfessorJWTPayload | 
 
 // Authenticate professor
 export async function authenticateProfessor(email: string, password: string): Promise<{ token: string; professor: any } | null> {
+  console.log('[AUTH DEBUG] Starting authentication for email:', email);
+
   const { data: professor, error } = await supabaseAdmin
     .from('professors')
     .select('*')
     .eq('email', email)
     .single();
 
+  console.log('[AUTH DEBUG] Database query result:', {
+    found: !!professor,
+    error: error?.message,
+    professorData: professor ? { id: professor.id, email: professor.email, name: professor.name } : null
+  });
+
   if (error || !professor) {
+    console.log('[AUTH DEBUG] Professor not found in database');
     return null;
   }
 
+  console.log('[AUTH DEBUG] Password hash from DB:', professor.password_hash);
+  console.log('[AUTH DEBUG] Password received:', password);
+  console.log('[AUTH DEBUG] Password hash length:', professor.password_hash?.length);
+
   const isValid = await verifyPassword(password, professor.password_hash);
+
+  console.log('[AUTH DEBUG] Password verification result:', isValid);
+
   if (!isValid) {
+    console.log('[AUTH DEBUG] Password verification failed');
     return null;
   }
+
+  console.log('[AUTH DEBUG] Authentication successful, creating token');
 
   const token = await createToken({
     professorId: professor.id,

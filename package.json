@@ -12,6 +12,7 @@
     "@supabase/supabase-js": "^2.39.0",
     "@zxing/library": "^0.20.0",
     "bcryptjs": "^2.4.3",
+    "dotenv": "^17.2.3",
     "jose": "^5.2.0",
     "next": "15.5.4",
     "qrcode": "^1.5.3",
