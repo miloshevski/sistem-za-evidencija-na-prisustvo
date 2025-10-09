@@ -10,20 +10,17 @@ interface QRDisplayProps {
 
 export default function QRDisplay({ sessionId, rotationInterval = 5000 }: QRDisplayProps) {
   const [qrDataURL, setQrDataURL] = useState('');
-  const [timeLeft, setTimeLeft] = useState(rotationInterval / 1000);
+  const [timeLeft, setTimeLeft] = useState(Math.floor(rotationInterval / 1000));
   const [error, setError] = useState('');
-  const [isGenerating, setIsGenerating] = useState(false);
-  const fetchTimeoutRef = useRef<NodeJS.Timeout>();
-  const countdownIntervalRef = useRef<NodeJS.Timeout>();
   const isMountedRef = useRef(true);
+  const intervalRef = useRef<NodeJS.Timeout>();
 
   useEffect(() => {
     isMountedRef.current = true;
+    let currentTime = Math.floor(rotationInterval / 1000);
 
     const fetchAndGenerateQR = async () => {
-      if (!isMountedRef.current || isGenerating) return;
-
-      setIsGenerating(true);
+      if (!isMountedRef.current) return;
 
       try {
         console.log('[QR] Fetching new token...');
@@ -32,7 +29,6 @@ export default function QRDisplay({ sessionId, rotationInterval = 5000 }: QRDisp
 
         if (!response.ok) {
           setError(data.error || 'Failed to generate QR code');
-          setIsGenerating(false);
           return;
         }
 
@@ -49,55 +45,46 @@ export default function QRDisplay({ sessionId, rotationInterval = 5000 }: QRDisp
         });
 
         if (isMountedRef.current) {
-          console.log('[QR] QR code generated, resetting countdown');
+          console.log('[QR] QR code generated successfully');
           setQrDataURL(dataURL);
-          setTimeLeft(rotationInterval / 1000);
           setError('');
-          setIsGenerating(false);
 
-          // Schedule next fetch
-          fetchTimeoutRef.current = setTimeout(() => {
-            fetchAndGenerateQR();
-          }, rotationInterval);
+          // Reset countdown to full interval
+          currentTime = Math.floor(rotationInterval / 1000);
+          setTimeLeft(currentTime);
         }
       } catch (err) {
         console.error('[QR] Error generating QR:', err);
         if (isMountedRef.current) {
           setError('Failed to generate QR code');
-          setIsGenerating(false);
         }
       }
     };
 
-    // Start countdown timer (updates every second)
-    const startCountdown = () => {
-      if (countdownIntervalRef.current) {
-        clearInterval(countdownIntervalRef.current);
-      }
-
-      countdownIntervalRef.current = setInterval(() => {
-        setTimeLeft((prev) => {
-          const newTime = prev - 1;
-          if (newTime <= 0) {
-            return rotationInterval / 1000;
-          }
-          return newTime;
-        });
-      }, 1000);
-    };
-
-    // Initial fetch and start countdown
+    // Initial fetch
     fetchAndGenerateQR();
-    startCountdown();
+
+    // Start countdown that also triggers QR refresh
+    intervalRef.current = setInterval(() => {
+      if (!isMountedRef.current) return;
+
+      currentTime--;
+
+      if (currentTime <= 0) {
+        // Time's up - fetch new QR code
+        console.log('[QR] Countdown reached 0, fetching new QR...');
+        fetchAndGenerateQR();
+      } else {
+        // Update countdown display
+        setTimeLeft(currentTime);
+      }
+    }, 1000); // Update every second
 
     // Cleanup
     return () => {
       isMountedRef.current = false;
-      if (fetchTimeoutRef.current) {
-        clearTimeout(fetchTimeoutRef.current);
-      }
-      if (countdownIntervalRef.current) {
-        clearInterval(countdownIntervalRef.current);
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current);
       }
     };
   }, [sessionId, rotationInterval]);
@@ -122,17 +109,9 @@ export default function QRDisplay({ sessionId, rotationInterval = 5000 }: QRDisp
               style={{ imageRendering: 'pixelated' }}
             />
             <div className="mt-4">
-              <div className="text-sm text-gray-600">
-                QR code refreshes in{' '}
-                <span className="font-semibold text-indigo-600">{timeLeft}s</span>
-              </div>
-              <div className="mt-2 bg-gray-200 rounded-full h-2 overflow-hidden">
-                <div
-                  className="bg-indigo-600 h-full transition-all duration-1000 ease-linear"
-                  style={{
-                    width: `${(timeLeft / (rotationInterval / 1000)) * 100}%`,
-                  }}
-                ></div>
+              <div className="text-lg font-semibold text-gray-700">
+                Refreshes in{' '}
+                <span className="text-2xl font-bold text-indigo-600">{timeLeft}s</span>
               </div>
             </div>
           </div>
