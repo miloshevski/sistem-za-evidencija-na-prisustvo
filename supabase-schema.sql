@@ -239,7 +239,7 @@ CREATE POLICY scans_invalid_select_professor ON scans_invalid
 -- Insert a sample professor (password: 'password123')
 -- Note: In production, use proper password hashing via your API
 INSERT INTO professors (name, email, password_hash) VALUES
-    ('Dr. John Doe', 'john.doe@university.edu', '$2a$10$rXGvPXvEVzK9zJKmF5J3qO7KZjYvZ7dJFH8BZvD3xW2XwGJN5YM8u');
+    ('Dr. John Doe', 'professor@test.com', '$2a$10$uRFcUeopc65GHPnjC.xFleKZLpXzrOU/WLxtfI0IUx85mZXesXJCu');
 
 -- Note: The password hash above is bcrypt for 'password123'
 -- In production, generate this via your authentication system
