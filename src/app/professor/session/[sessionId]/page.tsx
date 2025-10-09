@@ -40,6 +40,7 @@ export default function SessionPage() {
     const interval = setInterval(fetchSessionData, 3000);
 
     return () => clearInterval(interval);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [sessionId]);
 
   const fetchSessionData = async () => {

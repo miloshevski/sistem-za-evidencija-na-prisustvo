@@ -102,6 +102,7 @@ export default function QRScanner({ onScanSuccess, onScanError }: QRScannerProps
         }
       }
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [onScanSuccess, onScanError]);
 
   return (

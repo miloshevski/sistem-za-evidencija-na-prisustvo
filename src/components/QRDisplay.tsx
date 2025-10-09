@@ -102,6 +102,7 @@ export default function QRDisplay({ sessionId, rotationInterval = 5000 }: QRDisp
       <div className="bg-white p-8 rounded-lg shadow-lg inline-block">
         {qrDataURL ? (
           <div>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               src={qrDataURL}
               alt="Attendance QR Code"

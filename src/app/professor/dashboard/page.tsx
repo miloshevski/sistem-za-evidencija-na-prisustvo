@@ -13,6 +13,7 @@ export default function ProfessorDashboard() {
 
   useEffect(() => {
     verifyAuth();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const verifyAuth = async () => {
@@ -174,7 +175,7 @@ export default function ProfessorDashboard() {
         <div className="mt-6 bg-blue-50 border border-blue-200 rounded-lg p-4">
           <h3 className="text-sm font-medium text-blue-900 mb-2">How it works:</h3>
           <ol className="text-sm text-blue-800 space-y-1 list-decimal list-inside">
-            <li>Click "Start New Session" to begin</li>
+            <li>Click &quot;Start New Session&quot; to begin</li>
             <li>A QR code will be generated that rotates every 5 seconds</li>
             <li>Students scan the QR code to mark their attendance</li>
             <li>Only students within 50m of your location can successfully scan</li>
