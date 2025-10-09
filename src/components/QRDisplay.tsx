@@ -12,19 +12,27 @@ export default function QRDisplay({ sessionId, rotationInterval = 5000 }: QRDisp
   const [qrDataURL, setQrDataURL] = useState('');
   const [timeLeft, setTimeLeft] = useState(rotationInterval / 1000);
   const [error, setError] = useState('');
-  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const [isGenerating, setIsGenerating] = useState(false);
+  const fetchTimeoutRef = useRef<NodeJS.Timeout>();
+  const countdownIntervalRef = useRef<NodeJS.Timeout>();
+  const isMountedRef = useRef(true);
 
   useEffect(() => {
-    let intervalId: NodeJS.Timeout;
-    let countdownId: NodeJS.Timeout;
+    isMountedRef.current = true;
 
     const fetchAndGenerateQR = async () => {
+      if (!isMountedRef.current || isGenerating) return;
+
+      setIsGenerating(true);
+
       try {
+        console.log('[QR] Fetching new token...');
         const response = await fetch(`/api/sessions/${sessionId}/qr-token`);
         const data = await response.json();
 
         if (!response.ok) {
           setError(data.error || 'Failed to generate QR code');
+          setIsGenerating(false);
           return;
         }
 
@@ -37,35 +45,60 @@ export default function QRDisplay({ sessionId, rotationInterval = 5000 }: QRDisp
             dark: '#000000',
             light: '#FFFFFF',
           },
+          errorCorrectionLevel: 'M',
         });
 
-        setQrDataURL(dataURL);
-        setTimeLeft(rotationInterval / 1000);
-        setError('');
+        if (isMountedRef.current) {
+          console.log('[QR] QR code generated, resetting countdown');
+          setQrDataURL(dataURL);
+          setTimeLeft(rotationInterval / 1000);
+          setError('');
+          setIsGenerating(false);
+
+          // Schedule next fetch
+          fetchTimeoutRef.current = setTimeout(() => {
+            fetchAndGenerateQR();
+          }, rotationInterval);
+        }
       } catch (err) {
-        setError('Failed to generate QR code');
+        console.error('[QR] Error generating QR:', err);
+        if (isMountedRef.current) {
+          setError('Failed to generate QR code');
+          setIsGenerating(false);
+        }
       }
     };
 
-    // Initial fetch
+    // Start countdown timer (updates every second)
+    const startCountdown = () => {
+      if (countdownIntervalRef.current) {
+        clearInterval(countdownIntervalRef.current);
+      }
+
+      countdownIntervalRef.current = setInterval(() => {
+        setTimeLeft((prev) => {
+          const newTime = prev - 1;
+          if (newTime <= 0) {
+            return rotationInterval / 1000;
+          }
+          return newTime;
+        });
+      }, 1000);
+    };
+
+    // Initial fetch and start countdown
     fetchAndGenerateQR();
+    startCountdown();
 
-    // Set up rotation interval
-    intervalId = setInterval(fetchAndGenerateQR, rotationInterval);
-
-    // Set up countdown
-    countdownId = setInterval(() => {
-      setTimeLeft((prev) => {
-        if (prev <= 1) {
-          return rotationInterval / 1000;
-        }
-        return prev - 1;
-      });
-    }, 1000);
-
+    // Cleanup
     return () => {
-      clearInterval(intervalId);
-      clearInterval(countdownId);
+      isMountedRef.current = false;
+      if (fetchTimeoutRef.current) {
+        clearTimeout(fetchTimeoutRef.current);
+      }
+      if (countdownIntervalRef.current) {
+        clearInterval(countdownIntervalRef.current);
+      }
     };
   }, [sessionId, rotationInterval]);
 
@@ -82,7 +115,12 @@ export default function QRDisplay({ sessionId, rotationInterval = 5000 }: QRDisp
       <div className="bg-white p-8 rounded-lg shadow-lg inline-block">
         {qrDataURL ? (
           <div>
-            <img src={qrDataURL} alt="Attendance QR Code" className="mx-auto" />
+            <img
+              src={qrDataURL}
+              alt="Attendance QR Code"
+              className="mx-auto"
+              style={{ imageRendering: 'pixelated' }}
+            />
             <div className="mt-4">
               <div className="text-sm text-gray-600">
                 QR code refreshes in{' '}
@@ -100,7 +138,8 @@ export default function QRDisplay({ sessionId, rotationInterval = 5000 }: QRDisp
           </div>
         ) : (
           <div className="w-96 h-96 flex items-center justify-center">
-            <div className="text-gray-600">Generating QR code...</div>
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600"></div>
+            <p className="ml-4 text-gray-600">Generating QR code...</p>
           </div>
         )}
       </div>
