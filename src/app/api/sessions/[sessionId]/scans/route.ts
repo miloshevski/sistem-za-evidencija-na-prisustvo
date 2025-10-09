@@ -4,13 +4,10 @@ import { supabaseAdmin } from "@/lib/supabase";
 
 export async function GET(
   request: NextRequest,
-  context: { params?: { sessionId?: string } }
+  { params }: { params: Promise<{ sessionId: string }> }
 ) {
   try {
-    const sessionId = context?.params?.sessionId;
-    if (!sessionId) {
-      return NextResponse.json({ error: "Missing sessionId" }, { status: 400 });
-    }
+    const { sessionId } = await params;
 
     // Get Authorization header
     const authHeader = request.headers.get("authorization");

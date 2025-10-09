@@ -9,21 +9,16 @@ import QRScanner from '@/components/QRScanner';
 
 export default function StudentScanPage() {
   const router = useRouter();
-  const [step, setStep] = useState<'form' | 'gps' | 'scan' | 'result'>('form');
+  const [step, setStep] = useState<'form' | 'scan' | 'result'>('form');
   const [studentData, setStudentData] = useState({
     student_index: '',
     name: '',
     surname: '',
   });
-  const [gpsData, setGpsData] = useState<{
-    lat: number;
-    lon: number;
-    timestamp: string;
-  } | null>(null);
   const [deviceId, setDeviceId] = useState('');
-  const [clientNonce, setClientNonce] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [scanning, setScanning] = useState(false);
   const [result, setResult] = useState<{
     valid: boolean;
     message?: string;
@@ -35,45 +30,43 @@ export default function StudentScanPage() {
     // Get device ID on mount
     const id = getDeviceId();
     setDeviceId(id);
+
+    // Load saved student data from localStorage
+    const saved = localStorage.getItem('student_form_data');
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        setStudentData(parsed);
+      } catch (e) {
+        // Ignore parse errors
+      }
+    }
   }, []);
 
   const handleFormSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
-    setLoading(true);
-    setStep('gps');
 
-    try {
-      // Capture GPS location
-      const position = await getCurrentPosition();
-      const gps = {
-        lat: position.coords.latitude,
-        lon: position.coords.longitude,
-        timestamp: new Date().toISOString(),
-      };
+    // Save student data to localStorage
+    localStorage.setItem('student_form_data', JSON.stringify(studentData));
 
-      setGpsData(gps);
-      setClientNonce(generateClientNonce());
-
-      // Move to scanning step
-      setStep('scan');
-      setLoading(false);
-    } catch (err: any) {
-      setError(
-        'Failed to get your GPS location. Please enable location services and try again.'
-      );
-      setStep('form');
-      setLoading(false);
-    }
+    // Go directly to scan step
+    setStep('scan');
   };
 
   const handleQRScan = async (qrData: string) => {
-    if (loading) return; // Prevent multiple scans
+    if (scanning) {
+      console.log('Already scanning, ignoring duplicate scan');
+      return; // Prevent multiple scans
+    }
 
+    setScanning(true);
     setLoading(true);
     setError('');
 
     try {
+      console.log('[SCAN] QR code scanned, starting process...');
+
       // Parse QR code data
       const qrPayload = JSON.parse(qrData);
       const { session_id, token, server_nonce } = qrPayload;
@@ -81,17 +74,26 @@ export default function StudentScanPage() {
       if (!session_id || !token || !server_nonce) {
         setError('Invalid QR code');
         setLoading(false);
+        setScanning(false);
         return;
       }
 
-      if (!gpsData) {
-        setError('GPS data not available. Please try again.');
-        setStep('form');
-        setLoading(false);
-        return;
-      }
+      console.log('[SCAN] Getting GPS location...');
+
+      // Capture GPS location NOW (when QR is scanned)
+      const position = await getCurrentPosition();
+      const client_lat = position.coords.latitude;
+      const client_lon = position.coords.longitude;
+
+      // Capture timestamp NOW (when QR is scanned)
+      const client_ts = new Date().toISOString();
+      const client_nonce = generateClientNonce();
+
+      console.log('[SCAN] GPS captured:', { client_lat, client_lon });
+      console.log('[SCAN] Timestamp:', client_ts);
 
       // Submit scan to server
+      console.log('[SCAN] Submitting to server...');
       const response = await fetch('/api/scans/submit', {
         method: 'POST',
         headers: {
@@ -104,48 +106,51 @@ export default function StudentScanPage() {
           student_index: studentData.student_index,
           name: studentData.name,
           surname: studentData.surname,
-          client_lat: gpsData.lat,
-          client_lon: gpsData.lon,
-          client_ts: gpsData.timestamp,
+          client_lat,
+          client_lon,
+          client_ts,
           device_id: deviceId,
-          client_nonce: clientNonce,
+          client_nonce,
           app_version: process.env.NEXT_PUBLIC_APP_VERSION || '1.0.0',
         }),
       });
 
       const data = await response.json();
+      console.log('[SCAN] Server response:', data);
 
       // Show result
       setResult(data);
       setStep('result');
       setLoading(false);
+      setScanning(false);
 
-      // Clear local data after submission
-      if (data.valid) {
-        // Keep device ID but clear other data
-        setStudentData({ student_index: '', name: '', surname: '' });
-        setGpsData(null);
-        setClientNonce('');
-      }
     } catch (err: any) {
-      setError('Failed to submit scan. Please try again.');
-      setStep('scan');
+      console.error('[SCAN] Error:', err);
+      setError(err.message || 'Failed to submit scan. Please try again.');
       setLoading(false);
+      setScanning(false);
     }
   };
 
   const handleQRError = (errorMsg: string) => {
+    console.error('[SCAN] QR Error:', errorMsg);
     setError(errorMsg);
   };
 
   const reset = () => {
     setStep('form');
-    setStudentData({ student_index: '', name: '', surname: '' });
-    setGpsData(null);
-    setClientNonce('');
     setError('');
     setResult(null);
     setLoading(false);
+    setScanning(false);
+  };
+
+  const tryAgain = () => {
+    setStep('scan');
+    setError('');
+    setResult(null);
+    setLoading(false);
+    setScanning(false);
   };
 
   return (
@@ -226,54 +231,55 @@ export default function StudentScanPage() {
                 disabled={loading}
                 className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50"
               >
-                {loading ? 'Getting GPS...' : 'Continue to QR Scan'}
+                Continue to Scan QR Code
               </button>
             </form>
             <div className="mt-4 p-3 bg-blue-50 rounded-lg">
               <p className="text-xs text-blue-800">
-                <strong>Note:</strong> This app will request your GPS location
-                to verify you are in the classroom.
+                <strong>Note:</strong> When you scan the QR code, your GPS location will be captured automatically.
               </p>
             </div>
           </div>
         )}
 
-        {/* Step 2: GPS Capture (loading state) */}
-        {step === 'gps' && (
-          <div className="bg-white shadow rounded-lg p-8 text-center">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 mx-auto"></div>
-            <p className="mt-4 text-gray-600">Capturing your GPS location...</p>
-          </div>
-        )}
-
-        {/* Step 3: QR Scanner */}
+        {/* Step 2: QR Scanner */}
         {step === 'scan' && (
           <div className="bg-white shadow rounded-lg p-6">
             <h2 className="text-lg font-semibold text-gray-900 mb-4">
               Scan QR Code
             </h2>
+            <div className="mb-4 p-3 bg-blue-50 rounded-lg">
+              <p className="text-xs text-blue-800">
+                <strong>Scanning as:</strong> {studentData.name} {studentData.surname} ({studentData.student_index})
+              </p>
+            </div>
             <div className="mb-4">
-              <QRScanner
-                onScanSuccess={handleQRScan}
-                onScanError={handleQRError}
-              />
+              {!loading && !scanning && (
+                <QRScanner
+                  onScanSuccess={handleQRScan}
+                  onScanError={handleQRError}
+                />
+              )}
             </div>
             {loading && (
               <div className="text-center py-4">
                 <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600 mx-auto"></div>
-                <p className="mt-2 text-sm text-gray-600">Submitting...</p>
+                <p className="mt-2 text-sm text-gray-600">
+                  {scanning ? 'Processing scan...' : 'Getting location...'}
+                </p>
               </div>
             )}
             <button
               onClick={reset}
               className="mt-4 w-full py-2 px-4 border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50"
+              disabled={loading}
             >
-              Cancel
+              Change Student Info
             </button>
           </div>
         )}
 
-        {/* Step 4: Result */}
+        {/* Step 3: Result */}
         {step === 'result' && result && (
           <div className="bg-white shadow rounded-lg p-6">
             {result.valid ? (
@@ -334,12 +340,20 @@ export default function StudentScanPage() {
                 <p className="mt-2 text-sm text-red-600">
                   {result.reason || 'Unable to record attendance.'}
                 </p>
-                <button
-                  onClick={reset}
-                  className="mt-6 w-full py-2 px-4 border border-transparent rounded-md text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700"
-                >
-                  Try Again
-                </button>
+                <div className="mt-6 space-y-2">
+                  <button
+                    onClick={tryAgain}
+                    className="w-full py-2 px-4 border border-transparent rounded-md text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700"
+                  >
+                    Scan Again
+                  </button>
+                  <button
+                    onClick={reset}
+                    className="w-full py-2 px-4 border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50"
+                  >
+                    Change Student Info
+                  </button>
+                </div>
               </div>
             )}
           </div>

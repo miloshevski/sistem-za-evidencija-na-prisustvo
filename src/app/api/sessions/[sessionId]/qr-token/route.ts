@@ -4,10 +4,10 @@ import { generateQRToken, generateServerNonce } from '@/lib/crypto';
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { sessionId: string } }
+  { params }: { params: Promise<{ sessionId: string }> }
 ) {
   try {
-    const sessionId = params.sessionId;
+    const { sessionId } = await params;
 
     // Verify session exists and is active
     const { data: session, error: sessionError } = await supabaseAdmin
