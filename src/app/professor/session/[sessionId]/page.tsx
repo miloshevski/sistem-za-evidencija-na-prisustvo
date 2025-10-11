@@ -23,6 +23,7 @@ export default function SessionPage() {
     reason: '',
   });
   const [manualOverrideError, setManualOverrideError] = useState('');
+  const [exporting, setExporting] = useState(false);
 
   useEffect(() => {
     const token = localStorage.getItem('professor_token');
@@ -141,6 +142,40 @@ export default function SessionPage() {
     }
   };
 
+  const exportScans = async (format: 'csv' | 'excel') => {
+    setExporting(true);
+    const token = localStorage.getItem('professor_token');
+
+    try {
+      const response = await fetch(`/api/sessions/${sessionId}/export?format=${format}`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      if (!response.ok) {
+        alert('Failed to export scans');
+        setExporting(false);
+        return;
+      }
+
+      // Download the file
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `attendance_${sessionId}_${Date.now()}.${format === 'excel' ? 'xlsx' : 'csv'}`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+    } catch (err) {
+      alert('Error exporting scans');
+    } finally {
+      setExporting(false);
+    }
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
@@ -163,12 +198,26 @@ export default function SessionPage() {
                 Started: {new Date(session.start_ts).toLocaleString()}
               </p>
             </div>
-            <div className="flex space-x-3">
+            <div className="flex flex-wrap gap-3">
               <button
                 onClick={() => setShowManualOverride(true)}
                 className="px-4 py-2 border border-indigo-600 text-indigo-600 rounded-md text-sm font-medium hover:bg-indigo-50"
               >
                 Manual Override
+              </button>
+              <button
+                onClick={() => exportScans('csv')}
+                disabled={exporting || validScans.length === 0}
+                className="px-4 py-2 border border-green-600 text-green-600 rounded-md text-sm font-medium hover:bg-green-50 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {exporting ? 'Exporting...' : 'Export CSV'}
+              </button>
+              <button
+                onClick={() => exportScans('excel')}
+                disabled={exporting || validScans.length === 0}
+                className="px-4 py-2 border border-green-600 text-green-600 rounded-md text-sm font-medium hover:bg-green-50 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {exporting ? 'Exporting...' : 'Export Excel'}
               </button>
               <button
                 onClick={endSession}

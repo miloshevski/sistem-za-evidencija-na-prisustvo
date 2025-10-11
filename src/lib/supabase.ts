@@ -87,3 +87,22 @@ export interface UsedServerNonce {
   session_id: string;
   created_at: string;
 }
+
+export interface ArchivedScan {
+  id: string;
+  session_id: string;
+  student_index: string;
+  name: string;
+  surname: string;
+  client_lat: number;
+  client_lon: number;
+  client_ts: string;
+  scanned_at_server: string;
+  distance_m: number;
+  device_id: string;
+  server_nonce: string;
+  client_nonce: string;
+  app_version: string | null;
+  archived_at: string;
+  created_at: string;
+}

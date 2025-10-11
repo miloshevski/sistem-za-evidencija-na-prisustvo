@@ -4,15 +4,31 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { getCurrentPosition } from '@/lib/gps';
 
+interface Session {
+  session_id: string;
+  professor_id: string;
+  start_ts: string;
+  end_ts: string | null;
+  prof_lat: number;
+  prof_lon: number;
+  is_active: boolean;
+  valid_scans_count: number;
+  invalid_scans_count: number;
+  archived_scans_count: number;
+}
+
 export default function ProfessorDashboard() {
   const router = useRouter();
   const [professor, setProfessor] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [startingSession, setStartingSession] = useState(false);
   const [error, setError] = useState('');
+  const [sessions, setSessions] = useState<Session[]>([]);
+  const [loadingSessions, setLoadingSessions] = useState(true);
 
   useEffect(() => {
     verifyAuth();
+    fetchSessions();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -44,6 +60,62 @@ export default function ProfessorDashboard() {
       setLoading(false);
     } catch (err) {
       router.push('/professor/login');
+    }
+  };
+
+  const fetchSessions = async () => {
+    const token = localStorage.getItem('professor_token');
+    if (!token) return;
+
+    try {
+      const response = await fetch('/api/sessions/list', {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setSessions(data.sessions);
+      }
+    } catch (err) {
+      console.error('Error fetching sessions:', err);
+    } finally {
+      setLoadingSessions(false);
+    }
+  };
+
+  const viewSession = (sessionId: string, isActive: boolean) => {
+    if (isActive) {
+      router.push(`/professor/session/${sessionId}`);
+    } else {
+      router.push(`/professor/session/${sessionId}/view`);
+    }
+  };
+
+  const endSessionFromDashboard = async (sessionId: string) => {
+    if (!confirm('Are you sure you want to end this session?')) {
+      return;
+    }
+
+    const token = localStorage.getItem('professor_token');
+    try {
+      const response = await fetch('/api/sessions/end', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ session_id: sessionId }),
+      });
+
+      if (response.ok) {
+        fetchSessions(); // Refresh the list
+      } else {
+        alert('Failed to end session');
+      }
+    } catch (err) {
+      alert('Error ending session');
     }
   };
 
@@ -98,9 +170,12 @@ export default function ProfessorDashboard() {
     );
   }
 
+  const activeSessions = sessions.filter((s) => s.is_active);
+  const pastSessions = sessions.filter((s) => !s.is_active);
+
   return (
     <div className="min-h-screen bg-gray-50 py-8 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-4xl mx-auto">
+      <div className="max-w-7xl mx-auto">
         {/* Header */}
         <div className="bg-white shadow rounded-lg p-6 mb-6">
           <div className="flex justify-between items-center">
@@ -127,7 +202,7 @@ export default function ProfessorDashboard() {
         )}
 
         {/* Start Session Card */}
-        <div className="bg-white shadow rounded-lg p-8">
+        <div className="bg-white shadow rounded-lg p-8 mb-6">
           <div className="text-center">
             <h2 className="text-xl font-semibold text-gray-900 mb-4">
               Start Attendance Session
@@ -137,7 +212,7 @@ export default function ProfessorDashboard() {
             </p>
             <button
               onClick={startSession}
-              disabled={startingSession}
+              disabled={startingSession || activeSessions.length > 0}
               className="inline-flex items-center px-6 py-3 border border-transparent text-base font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {startingSession ? (
@@ -168,7 +243,144 @@ export default function ProfessorDashboard() {
                 'Start New Session'
               )}
             </button>
+            {activeSessions.length > 0 && (
+              <p className="text-sm text-gray-600 mt-2">
+                You already have an active session. Please end it before starting a new one.
+              </p>
+            )}
           </div>
+        </div>
+
+        {/* Active Sessions */}
+        {activeSessions.length > 0 && (
+          <div className="bg-white shadow rounded-lg p-6 mb-6">
+            <h2 className="text-xl font-semibold text-gray-900 mb-4">
+              Active Sessions
+            </h2>
+            <div className="space-y-4">
+              {activeSessions.map((session) => (
+                <div
+                  key={session.session_id}
+                  className="border border-green-200 bg-green-50 rounded-lg p-4"
+                >
+                  <div className="flex justify-between items-start">
+                    <div className="flex-1">
+                      <div className="flex items-center">
+                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                          Active
+                        </span>
+                        <span className="ml-2 text-sm text-gray-600">
+                          Started: {new Date(session.start_ts).toLocaleString()}
+                        </span>
+                      </div>
+                      <div className="mt-2 flex items-center space-x-4 text-sm">
+                        <span className="text-green-700 font-medium">
+                          {session.valid_scans_count} valid scans
+                        </span>
+                        <span className="text-red-600">
+                          {session.invalid_scans_count} invalid scans
+                        </span>
+                      </div>
+                    </div>
+                    <div className="flex space-x-2">
+                      <button
+                        onClick={() => viewSession(session.session_id, true)}
+                        className="px-4 py-2 bg-indigo-600 text-white rounded-md text-sm font-medium hover:bg-indigo-700"
+                      >
+                        View Session
+                      </button>
+                      <button
+                        onClick={() => endSessionFromDashboard(session.session_id)}
+                        className="px-4 py-2 bg-red-600 text-white rounded-md text-sm font-medium hover:bg-red-700"
+                      >
+                        End Session
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Past Sessions */}
+        <div className="bg-white shadow rounded-lg p-6">
+          <h2 className="text-xl font-semibold text-gray-900 mb-4">
+            Past Sessions
+          </h2>
+          {loadingSessions ? (
+            <div className="text-center py-8 text-gray-500">Loading sessions...</div>
+          ) : pastSessions.length === 0 ? (
+            <div className="text-center py-8 text-gray-500">
+              No past sessions yet
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="min-w-full divide-y divide-gray-200">
+                <thead className="bg-gray-50">
+                  <tr>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Date
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Duration
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Valid Scans
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Invalid Scans
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Actions
+                    </th>
+                  </tr>
+                </thead>
+                <tbody className="bg-white divide-y divide-gray-200">
+                  {pastSessions.map((session) => {
+                    const duration = session.end_ts
+                      ? Math.round(
+                          (new Date(session.end_ts).getTime() -
+                            new Date(session.start_ts).getTime()) /
+                            1000 /
+                            60
+                        )
+                      : 0;
+                    return (
+                      <tr key={session.session_id}>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                          {new Date(session.start_ts).toLocaleDateString()}
+                          <br />
+                          <span className="text-xs text-gray-500">
+                            {new Date(session.start_ts).toLocaleTimeString()}
+                          </span>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                          {duration} min
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-green-600 font-medium">
+                          {session.archived_scans_count > 0
+                            ? session.archived_scans_count
+                            : session.valid_scans_count}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-red-600">
+                          {session.invalid_scans_count}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm">
+                          <button
+                            onClick={() => viewSession(session.session_id, false)}
+                            className="text-indigo-600 hover:text-indigo-900 font-medium"
+                          >
+                            View Details
+                          </button>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          )}
         </div>
 
         {/* Instructions */}

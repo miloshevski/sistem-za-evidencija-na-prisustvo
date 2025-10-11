@@ -14,11 +14,13 @@
     "bcryptjs": "^2.4.3",
     "dotenv": "^17.2.3",
     "jose": "^5.2.0",
+    "json2csv": "^6.0.0-alpha.2",
     "next": "15.5.4",
     "qrcode": "^1.5.3",
     "react": "19.1.0",
     "react-dom": "19.1.0",
-    "uuid": "^9.0.1"
+    "uuid": "^9.0.1",
+    "xlsx": "^0.18.5"
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3",
