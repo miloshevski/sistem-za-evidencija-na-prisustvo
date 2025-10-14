@@ -14,6 +14,10 @@ export default function QRScanner({ onScanSuccess, onScanError }: QRScannerProps
   const [error, setError] = useState('');
   const [hasScanned, setHasScanned] = useState(false);
   const readerRef = useRef<BrowserMultiFormatReader | null>(null);
+  const streamRef = useRef<MediaStream | null>(null);
+  const [zoomLevel, setZoomLevel] = useState(1);
+  const [maxZoom, setMaxZoom] = useState(1);
+  const [supportsZoom, setSupportsZoom] = useState(false);
 
   useEffect(() => {
     let mounted = true;
@@ -55,6 +59,29 @@ export default function QRScanner({ onScanSuccess, onScanError }: QRScannerProps
 
         if (!mounted || !videoRef.current) return;
 
+        // Get the stream to check zoom capabilities
+        const stream = await navigator.mediaDevices.getUserMedia({
+          video: { deviceId: { exact: deviceId } }
+        });
+        streamRef.current = stream;
+
+        // Check if zoom is supported
+        const videoTrack = stream.getVideoTracks()[0];
+        const capabilities = videoTrack.getCapabilities() as any;
+
+        if (capabilities.zoom) {
+          setSupportsZoom(true);
+          setMaxZoom(capabilities.zoom.max);
+          console.log('[SCANNER] Zoom supported, max:', capabilities.zoom.max);
+        } else {
+          console.log('[SCANNER] Zoom not supported on this device');
+        }
+
+        // Assign stream to video element
+        if (videoRef.current) {
+          videoRef.current.srcObject = stream;
+        }
+
         readerRef.current.decodeFromVideoDevice(
           deviceId,
           videoRef.current,
@@ -66,6 +93,9 @@ export default function QRScanner({ onScanSuccess, onScanError }: QRScannerProps
               // Stop scanning after successful scan
               if (readerRef.current) {
                 readerRef.current.reset();
+              }
+              if (streamRef.current) {
+                streamRef.current.getTracks().forEach(track => track.stop());
               }
             }
             // Ignore "NotFoundException" - it just means no QR code found yet
@@ -101,9 +131,37 @@ export default function QRScanner({ onScanSuccess, onScanError }: QRScannerProps
           // Ignore reset errors
         }
       }
+      if (streamRef.current) {
+        streamRef.current.getTracks().forEach(track => track.stop());
+      }
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [onScanSuccess, onScanError]);
+
+  const handleZoomChange = async (newZoom: number) => {
+    if (!streamRef.current || !supportsZoom) return;
+
+    try {
+      const videoTrack = streamRef.current.getVideoTracks()[0];
+      await videoTrack.applyConstraints({
+        advanced: [{ zoom: newZoom } as any]
+      });
+      setZoomLevel(newZoom);
+      console.log('[SCANNER] Zoom set to:', newZoom);
+    } catch (err) {
+      console.error('[SCANNER] Failed to set zoom:', err);
+    }
+  };
+
+  const zoomIn = () => {
+    const newZoom = Math.min(zoomLevel + 0.5, maxZoom);
+    handleZoomChange(newZoom);
+  };
+
+  const zoomOut = () => {
+    const newZoom = Math.max(zoomLevel - 0.5, 1);
+    handleZoomChange(newZoom);
+  };
 
   return (
     <div className="relative bg-black rounded-lg overflow-hidden">
@@ -129,6 +187,30 @@ export default function QRScanner({ onScanSuccess, onScanError }: QRScannerProps
           <div className="inline-block bg-black bg-opacity-70 text-white px-4 py-2 rounded-lg text-sm">
             📷 Point camera at QR code
           </div>
+        </div>
+      )}
+      {/* Zoom controls */}
+      {supportsZoom && isScanning && !error && !hasScanned && (
+        <div className="absolute top-4 right-4 flex flex-col gap-2 z-10">
+          <button
+            onClick={zoomIn}
+            disabled={zoomLevel >= maxZoom}
+            className="bg-black bg-opacity-70 hover:bg-opacity-90 text-white w-12 h-12 rounded-full flex items-center justify-center font-bold text-xl disabled:opacity-50 disabled:cursor-not-allowed transition-all active:scale-95"
+            aria-label="Zoom in"
+          >
+            +
+          </button>
+          <div className="bg-black bg-opacity-70 text-white text-xs px-2 py-1 rounded text-center">
+            {zoomLevel.toFixed(1)}x
+          </div>
+          <button
+            onClick={zoomOut}
+            disabled={zoomLevel <= 1}
+            className="bg-black bg-opacity-70 hover:bg-opacity-90 text-white w-12 h-12 rounded-full flex items-center justify-center font-bold text-xl disabled:opacity-50 disabled:cursor-not-allowed transition-all active:scale-95"
+            aria-label="Zoom out"
+          >
+            −
+          </button>
         </div>
       )}
       {hasScanned && (
