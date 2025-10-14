@@ -1,5 +1,3 @@
--- Migration: Add archived_scans table for storing past session scans
--- This table stores all valid scans from ended sessions for historical record keeping
 
 CREATE TABLE IF NOT EXISTS archived_scans (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -20,22 +18,16 @@ CREATE TABLE IF NOT EXISTS archived_scans (
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
--- Add index for faster queries by session_id
 CREATE INDEX IF NOT EXISTS idx_archived_scans_session_id ON archived_scans(session_id);
 
--- Add index for faster queries by student_index
 CREATE INDEX IF NOT EXISTS idx_archived_scans_student_index ON archived_scans(student_index);
 
--- Add index for faster queries by archived_at
 CREATE INDEX IF NOT EXISTS idx_archived_scans_archived_at ON archived_scans(archived_at);
 
--- Add comment to table
 COMMENT ON TABLE archived_scans IS 'Stores all valid scans from ended sessions for historical record keeping and reporting';
 
--- Enable Row Level Security (RLS)
 ALTER TABLE archived_scans ENABLE ROW LEVEL SECURITY;
 
--- Create policy to allow professors to view their own session's archived scans
 CREATE POLICY "Professors can view archived scans from their sessions"
   ON archived_scans
   FOR SELECT

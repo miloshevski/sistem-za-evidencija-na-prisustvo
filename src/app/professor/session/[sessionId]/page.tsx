@@ -391,7 +391,7 @@ export default function SessionPage() {
                   <input
                     type="text"
                     required
-                    className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                    className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 bg-white text-gray-900 placeholder-gray-700 font-medium focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
                     value={manualOverrideData.student_index}
                     onChange={(e) =>
                       setManualOverrideData({
@@ -408,7 +408,7 @@ export default function SessionPage() {
                   <input
                     type="text"
                     required
-                    className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                    className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 bg-white text-gray-900 placeholder-gray-700 font-medium focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
                     value={manualOverrideData.name}
                     onChange={(e) =>
                       setManualOverrideData({
@@ -425,7 +425,7 @@ export default function SessionPage() {
                   <input
                     type="text"
                     required
-                    className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                    className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 bg-white text-gray-900 placeholder-gray-700 font-medium focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
                     value={manualOverrideData.surname}
                     onChange={(e) =>
                       setManualOverrideData({
@@ -440,7 +440,7 @@ export default function SessionPage() {
                     Reason (optional)
                   </label>
                   <textarea
-                    className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                    className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 bg-white text-gray-900 placeholder-gray-700 font-medium focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
                     rows={2}
                     value={manualOverrideData.reason}
                     onChange={(e) =>

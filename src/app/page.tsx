@@ -1,22 +1,22 @@
-'use client';
+"use client";
 
-import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
-import { getCurrentPosition } from '@/lib/gps';
-import { getDeviceId } from '@/lib/deviceId';
-import { generateClientNonce } from '@/lib/crypto';
-import QRScanner from '@/components/QRScanner';
+import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
+import { getCurrentPosition } from "@/lib/gps";
+import { getDeviceId } from "@/lib/deviceId";
+import { generateClientNonce } from "@/lib/crypto";
+import QRScanner from "@/components/QRScanner";
 
 export default function StudentScanPage() {
   const router = useRouter();
-  const [step, setStep] = useState<'form' | 'scan' | 'result'>('form');
+  const [step, setStep] = useState<"form" | "scan" | "result">("form");
   const [studentData, setStudentData] = useState({
-    student_index: '',
-    name: '',
-    surname: '',
+    student_index: "",
+    name: "",
+    surname: "",
   });
-  const [deviceId, setDeviceId] = useState('');
-  const [error, setError] = useState('');
+  const [deviceId, setDeviceId] = useState("");
+  const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [scanning, setScanning] = useState(false);
   const [result, setResult] = useState<{
@@ -32,7 +32,7 @@ export default function StudentScanPage() {
     setDeviceId(id);
 
     // Load saved student data from localStorage
-    const saved = localStorage.getItem('student_form_data');
+    const saved = localStorage.getItem("student_form_data");
     if (saved) {
       try {
         const parsed = JSON.parse(saved);
@@ -45,40 +45,40 @@ export default function StudentScanPage() {
 
   const handleFormSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError('');
+    setError("");
 
     // Save student data to localStorage
-    localStorage.setItem('student_form_data', JSON.stringify(studentData));
+    localStorage.setItem("student_form_data", JSON.stringify(studentData));
 
     // Go directly to scan step
-    setStep('scan');
+    setStep("scan");
   };
 
   const handleQRScan = async (qrData: string) => {
     if (scanning) {
-      console.log('Already scanning, ignoring duplicate scan');
+      console.log("Already scanning, ignoring duplicate scan");
       return; // Prevent multiple scans
     }
 
     setScanning(true);
     setLoading(true);
-    setError('');
+    setError("");
 
     try {
-      console.log('[SCAN] QR code scanned, starting process...');
+      console.log("[SCAN] QR code scanned, starting process...");
 
       // Parse QR code data
       const qrPayload = JSON.parse(qrData);
       const { session_id, token, server_nonce } = qrPayload;
 
       if (!session_id || !token || !server_nonce) {
-        setError('Invalid QR code');
+        setError("Invalid QR code");
         setLoading(false);
         setScanning(false);
         return;
       }
 
-      console.log('[SCAN] Getting GPS location...');
+      console.log("[SCAN] Getting GPS location...");
 
       // Capture GPS location NOW (when QR is scanned)
       const position = await getCurrentPosition();
@@ -89,15 +89,15 @@ export default function StudentScanPage() {
       const client_ts = new Date().toISOString();
       const client_nonce = generateClientNonce();
 
-      console.log('[SCAN] GPS captured:', { client_lat, client_lon });
-      console.log('[SCAN] Timestamp:', client_ts);
+      console.log("[SCAN] GPS captured:", { client_lat, client_lon });
+      console.log("[SCAN] Timestamp:", client_ts);
 
       // Submit scan to server
-      console.log('[SCAN] Submitting to server...');
-      const response = await fetch('/api/scans/submit', {
-        method: 'POST',
+      console.log("[SCAN] Submitting to server...");
+      const response = await fetch("/api/scans/submit", {
+        method: "POST",
         headers: {
-          'Content-Type': 'application/json',
+          "Content-Type": "application/json",
         },
         body: JSON.stringify({
           session_id,
@@ -111,43 +111,42 @@ export default function StudentScanPage() {
           client_ts,
           device_id: deviceId,
           client_nonce,
-          app_version: process.env.NEXT_PUBLIC_APP_VERSION || '1.0.0',
+          app_version: process.env.NEXT_PUBLIC_APP_VERSION || "1.0.0",
         }),
       });
 
       const data = await response.json();
-      console.log('[SCAN] Server response:', data);
+      console.log("[SCAN] Server response:", data);
 
       // Show result
       setResult(data);
-      setStep('result');
+      setStep("result");
       setLoading(false);
       setScanning(false);
-
     } catch (err: any) {
-      console.error('[SCAN] Error:', err);
-      setError(err.message || 'Failed to submit scan. Please try again.');
+      console.error("[SCAN] Error:", err);
+      setError(err.message || "Failed to submit scan. Please try again.");
       setLoading(false);
       setScanning(false);
     }
   };
 
   const handleQRError = (errorMsg: string) => {
-    console.error('[SCAN] QR Error:', errorMsg);
+    console.error("[SCAN] QR Error:", errorMsg);
     setError(errorMsg);
   };
 
   const reset = () => {
-    setStep('form');
-    setError('');
+    setStep("form");
+    setError("");
     setResult(null);
     setLoading(false);
     setScanning(false);
   };
 
   const tryAgain = () => {
-    setStep('scan');
-    setError('');
+    setStep("scan");
+    setError("");
     setResult(null);
     setLoading(false);
     setScanning(false);
@@ -158,23 +157,21 @@ export default function StudentScanPage() {
       <div className="max-w-md mx-auto">
         {/* Header */}
         <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold text-gray-900">
-            Class Attendance
-          </h1>
+          <h1 className="text-3xl font-bold text-gray-900">Class Attendance</h1>
           <p className="mt-2 text-sm text-gray-600">
             Scan QR code to mark your attendance
           </p>
         </div>
 
         {/* Error display */}
-        {error && step !== 'result' && (
+        {error && step !== "result" && (
           <div className="mb-4 bg-red-50 border border-red-200 rounded-lg p-4">
             <p className="text-sm text-red-800">{error}</p>
           </div>
         )}
 
         {/* Step 1: Student Information Form */}
-        {step === 'form' && (
+        {step === "form" && (
           <div className="bg-white shadow rounded-lg p-6">
             <h2 className="text-lg font-semibold text-gray-900 mb-4">
               Enter Your Information
@@ -187,7 +184,7 @@ export default function StudentScanPage() {
                 <input
                   type="text"
                   required
-                  className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                  className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 bg-white text-gray-900 placeholder-gray-700 font-medium focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
                   value={studentData.student_index}
                   onChange={(e) =>
                     setStudentData({
@@ -195,7 +192,7 @@ export default function StudentScanPage() {
                       student_index: e.target.value,
                     })
                   }
-                  placeholder="e.g., 2021/0001"
+                  placeholder=""
                 />
               </div>
               <div>
@@ -205,7 +202,7 @@ export default function StudentScanPage() {
                 <input
                   type="text"
                   required
-                  className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                  className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 bg-white text-gray-900 placeholder-gray-700 font-medium focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
                   value={studentData.name}
                   onChange={(e) =>
                     setStudentData({ ...studentData, name: e.target.value })
@@ -219,7 +216,7 @@ export default function StudentScanPage() {
                 <input
                   type="text"
                   required
-                  className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                  className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 bg-white text-gray-900 placeholder-gray-700 font-medium focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
                   value={studentData.surname}
                   onChange={(e) =>
                     setStudentData({ ...studentData, surname: e.target.value })
@@ -236,21 +233,23 @@ export default function StudentScanPage() {
             </form>
             <div className="mt-4 p-3 bg-blue-50 rounded-lg">
               <p className="text-xs text-blue-800">
-                <strong>Note:</strong> When you scan the QR code, your GPS location will be captured automatically.
+                <strong>Note:</strong> When you scan the QR code, your GPS
+                location will be captured automatically.
               </p>
             </div>
           </div>
         )}
 
         {/* Step 2: QR Scanner */}
-        {step === 'scan' && (
+        {step === "scan" && (
           <div className="bg-white shadow rounded-lg p-6">
             <h2 className="text-lg font-semibold text-gray-900 mb-4">
               Scan QR Code
             </h2>
             <div className="mb-4 p-3 bg-blue-50 rounded-lg">
               <p className="text-xs text-blue-800">
-                <strong>Scanning as:</strong> {studentData.name} {studentData.surname} ({studentData.student_index})
+                <strong>Scanning as:</strong> {studentData.name}{" "}
+                {studentData.surname} ({studentData.student_index})
               </p>
             </div>
             <div className="mb-4">
@@ -265,7 +264,7 @@ export default function StudentScanPage() {
               <div className="text-center py-4">
                 <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600 mx-auto"></div>
                 <p className="mt-2 text-sm text-gray-600">
-                  {scanning ? 'Processing scan...' : 'Getting location...'}
+                  {scanning ? "Processing scan..." : "Getting location..."}
                 </p>
               </div>
             )}
@@ -280,7 +279,7 @@ export default function StudentScanPage() {
         )}
 
         {/* Step 3: Result */}
-        {step === 'result' && result && (
+        {step === "result" && result && (
           <div className="bg-white shadow rounded-lg p-6">
             {result.valid ? (
               <div className="text-center">
@@ -303,7 +302,8 @@ export default function StudentScanPage() {
                   Attendance Recorded!
                 </h3>
                 <p className="mt-2 text-sm text-gray-600">
-                  {result.message || 'Your attendance has been successfully recorded.'}
+                  {result.message ||
+                    "Your attendance has been successfully recorded."}
                 </p>
                 {result.distance_m !== undefined && (
                   <p className="mt-1 text-xs text-gray-500">
@@ -338,7 +338,7 @@ export default function StudentScanPage() {
                   Scan Failed
                 </h3>
                 <p className="mt-2 text-sm text-red-600">
-                  {result.reason || 'Unable to record attendance.'}
+                  {result.reason || "Unable to record attendance."}
                 </p>
                 <div className="mt-6 space-y-2">
                   <button
@@ -369,7 +369,7 @@ export default function StudentScanPage() {
         {/* Professor Login Link */}
         <div className="mt-6 text-center">
           <button
-            onClick={() => router.push('/professor/login')}
+            onClick={() => router.push("/professor/login")}
             className="text-sm text-indigo-600 hover:text-indigo-500"
           >
             Professor? Click here to login
