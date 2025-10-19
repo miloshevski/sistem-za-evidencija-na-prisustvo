@@ -252,28 +252,39 @@ export default function QRScanner({ onScanSuccess, onScanError }: QRScannerProps
 
       {/* Zoom slider control - below the camera */}
       {supportsZoom && isScanning && !error && !hasScanned && (
-        <div className="bg-gray-800 bg-opacity-90 backdrop-blur-sm rounded-lg p-4">
+        <div
+          className="bg-gray-800 bg-opacity-90 backdrop-blur-sm rounded-lg p-4"
+          onTouchStart={(e) => e.stopPropagation()}
+          onTouchMove={(e) => e.stopPropagation()}
+        >
           <div className="flex items-center gap-3">
             <span className="text-white text-sm font-medium whitespace-nowrap">
               {zoomLevel.toFixed(1)}x
             </span>
-            <input
-              type="range"
-              min="1"
-              max={maxZoom}
-              step="0.1"
-              value={zoomLevel}
-              onChange={handleSliderChange}
-              onInput={handleSliderInput}
-              className="flex-1 slider-thumb"
-              aria-label="Zoom level"
-              style={{
-                WebkitAppearance: 'none',
-                appearance: 'none',
-                minHeight: '24px',
-                touchAction: 'none'
-              }}
-            />
+            <div className="flex-1 py-2">
+              <input
+                type="range"
+                min="1"
+                max={maxZoom}
+                step="0.1"
+                value={zoomLevel}
+                onChange={handleSliderChange}
+                onInput={handleSliderInput}
+                onTouchStart={(e) => {
+                  console.log('[SCANNER] Touch start on slider');
+                  e.stopPropagation();
+                }}
+                onTouchMove={(e) => {
+                  console.log('[SCANNER] Touch move on slider');
+                  e.stopPropagation();
+                }}
+                onMouseDown={() => {
+                  console.log('[SCANNER] Mouse down on slider');
+                }}
+                className="slider-thumb w-full"
+                aria-label="Zoom level"
+              />
+            </div>
             <span className="text-white text-xs opacity-70 whitespace-nowrap">
               Zoom
             </span>
