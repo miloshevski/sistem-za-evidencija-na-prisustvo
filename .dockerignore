@@ -1,0 +1,53 @@
+# Dependencies
+node_modules
+npm-debug.log
+# Keep package-lock.json for npm ci
+# package-lock.json
+yarn.lock
+pnpm-lock.yaml
+
+# Next.js
+.next
+out
+dist
+build
+
+# Git
+.git
+.gitignore
+.gitattributes
+
+# Environment files
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# IDE
+.vscode
+.idea
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+logs
+*.log
+
+# Testing
+coverage
+.nyc_output
+
+# Documentation (optional - uncomment if you don't want these in image)
+# README.md
+# *.md
+
+# Docker
+Dockerfile
+.dockerignore
+docker-compose*.yml

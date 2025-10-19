@@ -1,0 +1,46 @@
+services:
+  # Next.js Application
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        # Pass NEXT_PUBLIC_ variables as build arguments
+        - NEXT_PUBLIC_SUPABASE_URL=${NEXT_PUBLIC_SUPABASE_URL}
+        - NEXT_PUBLIC_SUPABASE_ANON_KEY=${NEXT_PUBLIC_SUPABASE_ANON_KEY}
+        - NEXT_PUBLIC_GPS_TOLERANCE_METERS=${NEXT_PUBLIC_GPS_TOLERANCE_METERS}
+        - NEXT_PUBLIC_APP_VERSION=${NEXT_PUBLIC_APP_VERSION}
+        - NEXT_PUBLIC_TIMESTAMP_TOLERANCE_SECONDS=${NEXT_PUBLIC_TIMESTAMP_TOLERANCE_SECONDS}
+        - NEXT_PUBLIC_QR_TOKEN_ROTATION_SECONDS=${NEXT_PUBLIC_QR_TOKEN_ROTATION_SECONDS}
+    container_name: attendance-system
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=production
+      # Load all environment variables from .env file
+      - NEXT_PUBLIC_SUPABASE_URL=${NEXT_PUBLIC_SUPABASE_URL}
+      - NEXT_PUBLIC_SUPABASE_ANON_KEY=${NEXT_PUBLIC_SUPABASE_ANON_KEY}
+      - SUPABASE_SERVICE_ROLE_KEY=${SUPABASE_SERVICE_ROLE_KEY}
+      - JWT_SECRET=${JWT_SECRET}
+    env_file:
+      - .env
+    networks:
+      - attendance-network
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3000/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    # Optional: Volume for logs (uncomment if needed)
+    # volumes:
+    #   - ./logs:/app/logs
+
+networks:
+  attendance-network:
+    driver: bridge
+
+# Optional: Add volumes for persistent data
+# volumes:
+#   app-data:

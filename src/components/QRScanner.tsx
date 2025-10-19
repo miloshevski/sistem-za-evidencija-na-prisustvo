@@ -266,14 +266,14 @@ export default function QRScanner({ onScanSuccess, onScanError }: QRScannerProps
     updateZoomFromPosition(e.clientX);
   };
 
-  const handleSliderEnd = () => {
-    if (isDragging) {
-      console.log('[SCANNER] Slider drag ended');
-      setIsDragging(false);
-    }
-  };
-
   useEffect(() => {
+    const handleSliderEnd = () => {
+      if (isDragging) {
+        console.log('[SCANNER] Slider drag ended');
+        setIsDragging(false);
+      }
+    };
+
     const handleGlobalMouseUp = () => handleSliderEnd();
     const handleGlobalTouchEnd = () => handleSliderEnd();
 

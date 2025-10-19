@@ -1,8 +1,19 @@
 import { createClient } from '@supabase/supabase-js';
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
-const supabaseServiceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
+// Get environment variables with fallbacks for build time
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://placeholder.supabase.co';
+const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'placeholder-anon-key';
+const supabaseServiceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY || 'placeholder-service-role-key';
+
+// Validate that we have real credentials at runtime (not build time)
+if (typeof window === 'undefined' && process.env.NODE_ENV === 'production') {
+  // Server-side runtime check
+  if (supabaseUrl === 'https://placeholder.supabase.co' ||
+      supabaseAnonKey === 'placeholder-anon-key' ||
+      supabaseServiceRoleKey === 'placeholder-service-role-key') {
+    console.warn('⚠️  Supabase credentials not properly configured. API calls will fail.');
+  }
+}
 
 // Client for browser/public operations
 export const supabase = createClient(supabaseUrl, supabaseAnonKey);
