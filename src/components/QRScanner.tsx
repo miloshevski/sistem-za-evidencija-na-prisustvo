@@ -190,13 +190,8 @@ export default function QRScanner({ onScanSuccess, onScanError }: QRScannerProps
     }
   };
 
-  const zoomIn = () => {
-    const newZoom = Math.min(zoomLevel + 0.5, maxZoom);
-    handleZoomChange(newZoom);
-  };
-
-  const zoomOut = () => {
-    const newZoom = Math.max(zoomLevel - 0.5, 1);
+  const handleSliderChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const newZoom = parseFloat(e.target.value);
     handleZoomChange(newZoom);
   };
 
@@ -226,28 +221,29 @@ export default function QRScanner({ onScanSuccess, onScanError }: QRScannerProps
           </div>
         </div>
       )}
-      {/* Zoom controls */}
+      {/* Zoom slider control */}
       {supportsZoom && isScanning && !error && !hasScanned && (
-        <div className="absolute top-4 right-4 flex flex-col gap-2 z-10">
-          <button
-            onClick={zoomIn}
-            disabled={zoomLevel >= maxZoom}
-            className="bg-black bg-opacity-70 hover:bg-opacity-90 text-white w-12 h-12 rounded-full flex items-center justify-center font-bold text-xl disabled:opacity-50 disabled:cursor-not-allowed transition-all active:scale-95"
-            aria-label="Zoom in"
-          >
-            +
-          </button>
-          <div className="bg-black bg-opacity-70 text-white text-xs px-2 py-1 rounded text-center">
-            {zoomLevel.toFixed(1)}x
+        <div className="absolute bottom-20 left-4 right-4 z-10">
+          <div className="bg-black bg-opacity-70 backdrop-blur-sm rounded-lg p-4">
+            <div className="flex items-center gap-3">
+              <span className="text-white text-sm font-medium whitespace-nowrap">
+                {zoomLevel.toFixed(1)}x
+              </span>
+              <input
+                type="range"
+                min="1"
+                max={maxZoom}
+                step="0.1"
+                value={zoomLevel}
+                onChange={handleSliderChange}
+                className="flex-1 slider-thumb"
+                aria-label="Zoom level"
+              />
+              <span className="text-white text-xs opacity-70 whitespace-nowrap">
+                Zoom
+              </span>
+            </div>
           </div>
-          <button
-            onClick={zoomOut}
-            disabled={zoomLevel <= 1}
-            className="bg-black bg-opacity-70 hover:bg-opacity-90 text-white w-12 h-12 rounded-full flex items-center justify-center font-bold text-xl disabled:opacity-50 disabled:cursor-not-allowed transition-all active:scale-95"
-            aria-label="Zoom out"
-          >
-            −
-          </button>
         </div>
       )}
       {hasScanned && (
