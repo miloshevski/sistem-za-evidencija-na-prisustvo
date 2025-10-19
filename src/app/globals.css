@@ -89,3 +89,38 @@ input[type="range"].slider-thumb:active::-moz-range-thumb {
   background: #4f46e5;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.6);
 }
+
+/* iOS Safari specific styles for touch-friendly QR scanner */
+@supports (-webkit-touch-callout: none) {
+  /* iOS Safari only */
+  video {
+    -webkit-transform: translateZ(0);
+    transform: translateZ(0);
+    -webkit-backface-visibility: hidden;
+    backface-visibility: hidden;
+  }
+
+  /* Prevent iOS Safari from highlighting tapped elements */
+  * {
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  /* Improve touch responsiveness on interactive elements */
+  button, a, input, [role="button"], [role="slider"] {
+    -webkit-user-select: none;
+    user-select: none;
+    -webkit-touch-callout: none;
+  }
+}
+
+/* WebKit-specific improvements for smooth transitions */
+@media screen and (-webkit-min-device-pixel-ratio: 0) {
+  .transition-all {
+    -webkit-transition: all 0.15s ease-out;
+  }
+
+  .transform {
+    -webkit-transform: translateZ(0);
+    -webkit-backface-visibility: hidden;
+  }
+}

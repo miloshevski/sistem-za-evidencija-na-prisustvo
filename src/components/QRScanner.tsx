@@ -61,13 +61,17 @@ export default function QRScanner({ onScanSuccess, onScanError }: QRScannerProps
 
         // Get the stream to check zoom capabilities
         // Safari-compatible approach: request stream with advanced constraints
-        const stream = await navigator.mediaDevices.getUserMedia({
+        const constraints: any = {
           video: {
             deviceId: { exact: deviceId },
+            // iOS Safari specific: explicitly request facing mode and zoom capability
+            facingMode: 'environment',
             // Include advanced constraints for better Safari compatibility
-            advanced: [{ zoom: 1.0 } as any]
-          } as any
-        });
+            advanced: [{ zoom: 1.0 }]
+          }
+        };
+
+        const stream = await navigator.mediaDevices.getUserMedia(constraints);
         streamRef.current = stream;
 
         // Check if zoom is supported
@@ -164,26 +168,51 @@ export default function QRScanner({ onScanSuccess, onScanError }: QRScannerProps
     try {
       const videoTrack = streamRef.current.getVideoTracks()[0];
 
-      // Try multiple approaches for Safari compatibility
+      // Try multiple approaches for Safari/WebKit compatibility
+      let zoomApplied = false;
+
+      // Method 1: Advanced constraints (preferred for most browsers)
       try {
-        // Standard approach (Chrome, Firefox)
         await videoTrack.applyConstraints({
           advanced: [{ zoom: newZoom } as any]
         });
+        zoomApplied = true;
+        console.log('[SCANNER] Zoom applied via advanced constraints');
       } catch (e1) {
+        console.log('[SCANNER] Advanced constraints failed, trying direct constraint');
+      }
+
+      // Method 2: Direct constraint (WebKit/Safari fallback)
+      if (!zoomApplied) {
         try {
-          // Safari alternative: direct constraint
           await videoTrack.applyConstraints({
             zoom: newZoom
           } as any);
+          zoomApplied = true;
+          console.log('[SCANNER] Zoom applied via direct constraint');
         } catch (e2) {
-          console.error('[SCANNER] Both zoom methods failed:', e1, e2);
-          throw e2;
+          console.log('[SCANNER] Direct constraint failed, trying iOS-specific method');
         }
       }
 
-      setZoomLevel(newZoom);
-      console.log('[SCANNER] Zoom set to:', newZoom);
+      // Method 3: iOS Safari specific - try with explicit type casting
+      if (!zoomApplied) {
+        try {
+          const constraints: any = {
+            zoom: { ideal: newZoom }
+          };
+          await videoTrack.applyConstraints(constraints);
+          zoomApplied = true;
+          console.log('[SCANNER] Zoom applied via iOS-specific method');
+        } catch (e3) {
+          console.error('[SCANNER] All zoom methods failed:', e3);
+        }
+      }
+
+      if (zoomApplied) {
+        setZoomLevel(newZoom);
+        console.log('[SCANNER] Zoom successfully set to:', newZoom);
+      }
     } catch (err) {
       console.error('[SCANNER] Failed to set zoom:', err);
       // Don't disable zoom UI, just log the error
@@ -212,7 +241,8 @@ export default function QRScanner({ onScanSuccess, onScanError }: QRScannerProps
 
   const handleSliderTouchStart = (e: React.TouchEvent<HTMLDivElement>) => {
     console.log('[SCANNER] Touch start on custom slider');
-    e.preventDefault();
+    // Safari/iOS: Don't prevent default on touch start to avoid blocking
+    // The touchAction: 'none' CSS property handles scroll prevention
     setIsDragging(true);
     if (e.touches.length > 0) {
       updateZoomFromPosition(e.touches[0].clientX);
@@ -222,7 +252,10 @@ export default function QRScanner({ onScanSuccess, onScanError }: QRScannerProps
   const handleSliderTouchMove = (e: React.TouchEvent<HTMLDivElement>) => {
     if (!isDragging) return;
     console.log('[SCANNER] Touch move on custom slider');
-    e.preventDefault();
+    // Prevent scrolling during drag on Safari/iOS
+    if (e.cancelable) {
+      e.preventDefault();
+    }
     if (e.touches.length > 0) {
       updateZoomFromPosition(e.touches[0].clientX);
     }
@@ -267,10 +300,13 @@ export default function QRScanner({ onScanSuccess, onScanError }: QRScannerProps
             maxHeight: '400px',
             minHeight: '300px',
             objectFit: 'cover',
-          }}
+            WebkitTransform: 'translateZ(0)',
+            transform: 'translateZ(0)',
+          } as React.CSSProperties}
           autoPlay
           playsInline
           muted
+          webkit-playsinline="true"
         />
         {error && (
           <div className="absolute top-4 left-4 right-4 bg-red-500 text-white p-3 rounded-lg text-sm z-10">
@@ -327,14 +363,30 @@ export default function QRScanner({ onScanSuccess, onScanError }: QRScannerProps
                 aria-valuemax={maxZoom}
                 aria-valuenow={zoomLevel}
                 tabIndex={0}
+                style={{
+                  WebkitTapHighlightColor: 'transparent',
+                  WebkitTouchCallout: 'none',
+                  WebkitUserSelect: 'none',
+                  touchAction: 'none',
+                } as React.CSSProperties}
               >
                 {/* Track */}
                 <div className="absolute inset-y-0 left-0 right-0 flex items-center">
-                  <div className="w-full h-2 bg-gray-600 rounded-full">
+                  <div
+                    className="w-full h-2 bg-gray-600 rounded-full"
+                    style={{
+                      WebkitAppearance: 'none',
+                      appearance: 'none',
+                    } as React.CSSProperties}
+                  >
                     {/* Filled portion */}
                     <div
                       className="h-full bg-indigo-500 rounded-full transition-all"
-                      style={{ width: `${((zoomLevel - 1) / (maxZoom - 1)) * 100}%` }}
+                      style={{
+                        width: `${((zoomLevel - 1) / (maxZoom - 1)) * 100}%`,
+                        WebkitTransition: 'width 0.15s ease-out',
+                        transition: 'width 0.15s ease-out',
+                      } as React.CSSProperties}
                     />
                   </div>
                 </div>
@@ -344,7 +396,9 @@ export default function QRScanner({ onScanSuccess, onScanError }: QRScannerProps
                   style={{
                     left: `${((zoomLevel - 1) / (maxZoom - 1)) * 100}%`,
                     transform: `translateX(-50%) ${isDragging ? 'scale(1.1)' : 'scale(1)'}`,
-                  }}
+                    WebkitTransform: `translateX(-50%) ${isDragging ? 'scale(1.1)' : 'scale(1)'}`,
+                    WebkitTapHighlightColor: 'transparent',
+                  } as React.CSSProperties}
                 />
               </div>
             </div>
