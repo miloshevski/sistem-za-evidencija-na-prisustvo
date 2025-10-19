@@ -60,21 +60,41 @@ export default function QRScanner({ onScanSuccess, onScanError }: QRScannerProps
         if (!mounted || !videoRef.current) return;
 
         // Get the stream to check zoom capabilities
+        // Safari-compatible approach: request stream with advanced constraints
         const stream = await navigator.mediaDevices.getUserMedia({
-          video: { deviceId: { exact: deviceId } }
+          video: {
+            deviceId: { exact: deviceId },
+            // Include advanced constraints for better Safari compatibility
+            advanced: [{ zoom: 1.0 } as any]
+          } as any
         });
         streamRef.current = stream;
 
         // Check if zoom is supported
         const videoTrack = stream.getVideoTracks()[0];
         const capabilities = videoTrack.getCapabilities() as any;
+        const settings = videoTrack.getSettings() as any;
+
+        // Check for zoom support in multiple ways for Safari compatibility
+        let hasZoomSupport = false;
+        let zoomMax = 1;
 
         if (capabilities.zoom) {
-          setSupportsZoom(true);
-          setMaxZoom(capabilities.zoom.max);
-          console.log('[SCANNER] Zoom supported, max:', capabilities.zoom.max);
+          hasZoomSupport = true;
+          zoomMax = capabilities.zoom.max || 5;
+          console.log('[SCANNER] Zoom supported via capabilities, max:', zoomMax);
+        } else if (settings.zoom !== undefined) {
+          // Safari might support zoom but not report it in capabilities
+          hasZoomSupport = true;
+          zoomMax = 5; // Default max for Safari
+          console.log('[SCANNER] Zoom detected via settings (Safari)');
         } else {
           console.log('[SCANNER] Zoom not supported on this device');
+        }
+
+        if (hasZoomSupport) {
+          setSupportsZoom(true);
+          setMaxZoom(zoomMax);
         }
 
         // Assign stream to video element
@@ -143,13 +163,30 @@ export default function QRScanner({ onScanSuccess, onScanError }: QRScannerProps
 
     try {
       const videoTrack = streamRef.current.getVideoTracks()[0];
-      await videoTrack.applyConstraints({
-        advanced: [{ zoom: newZoom } as any]
-      });
+
+      // Try multiple approaches for Safari compatibility
+      try {
+        // Standard approach (Chrome, Firefox)
+        await videoTrack.applyConstraints({
+          advanced: [{ zoom: newZoom } as any]
+        });
+      } catch (e1) {
+        try {
+          // Safari alternative: direct constraint
+          await videoTrack.applyConstraints({
+            zoom: newZoom
+          } as any);
+        } catch (e2) {
+          console.error('[SCANNER] Both zoom methods failed:', e1, e2);
+          throw e2;
+        }
+      }
+
       setZoomLevel(newZoom);
       console.log('[SCANNER] Zoom set to:', newZoom);
     } catch (err) {
       console.error('[SCANNER] Failed to set zoom:', err);
+      // Don't disable zoom UI, just log the error
     }
   };
 
