@@ -190,17 +190,72 @@ export default function QRScanner({ onScanSuccess, onScanError }: QRScannerProps
     }
   };
 
-  const handleSliderChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const newZoom = parseFloat(e.target.value);
-    console.log('[SCANNER] Slider changed to:', newZoom);
+  const sliderRef = useRef<HTMLDivElement>(null);
+  const [isDragging, setIsDragging] = useState(false);
+
+  const updateZoomFromPosition = (clientX: number) => {
+    if (!sliderRef.current) return;
+
+    const rect = sliderRef.current.getBoundingClientRect();
+    const percent = Math.max(0, Math.min(1, (clientX - rect.left) / rect.width));
+    const newZoom = 1 + percent * (maxZoom - 1);
+
+    console.log('[SCANNER] Zoom updated to:', newZoom);
     handleZoomChange(newZoom);
   };
 
-  const handleSliderInput = (e: React.FormEvent<HTMLInputElement>) => {
-    const newZoom = parseFloat((e.target as HTMLInputElement).value);
-    console.log('[SCANNER] Slider input:', newZoom);
-    handleZoomChange(newZoom);
+  const handleSliderMouseDown = (e: React.MouseEvent<HTMLDivElement>) => {
+    console.log('[SCANNER] Mouse down on custom slider');
+    setIsDragging(true);
+    updateZoomFromPosition(e.clientX);
   };
+
+  const handleSliderTouchStart = (e: React.TouchEvent<HTMLDivElement>) => {
+    console.log('[SCANNER] Touch start on custom slider');
+    e.preventDefault();
+    setIsDragging(true);
+    if (e.touches.length > 0) {
+      updateZoomFromPosition(e.touches[0].clientX);
+    }
+  };
+
+  const handleSliderTouchMove = (e: React.TouchEvent<HTMLDivElement>) => {
+    if (!isDragging) return;
+    console.log('[SCANNER] Touch move on custom slider');
+    e.preventDefault();
+    if (e.touches.length > 0) {
+      updateZoomFromPosition(e.touches[0].clientX);
+    }
+  };
+
+  const handleSliderMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
+    if (!isDragging) return;
+    updateZoomFromPosition(e.clientX);
+  };
+
+  const handleSliderEnd = () => {
+    if (isDragging) {
+      console.log('[SCANNER] Slider drag ended');
+      setIsDragging(false);
+    }
+  };
+
+  useEffect(() => {
+    const handleGlobalMouseUp = () => handleSliderEnd();
+    const handleGlobalTouchEnd = () => handleSliderEnd();
+
+    if (isDragging) {
+      document.addEventListener('mouseup', handleGlobalMouseUp);
+      document.addEventListener('touchend', handleGlobalTouchEnd);
+      document.addEventListener('touchcancel', handleGlobalTouchEnd);
+    }
+
+    return () => {
+      document.removeEventListener('mouseup', handleGlobalMouseUp);
+      document.removeEventListener('touchend', handleGlobalTouchEnd);
+      document.removeEventListener('touchcancel', handleGlobalTouchEnd);
+    };
+  }, [isDragging]);
 
   return (
     <div className="space-y-4">
@@ -252,38 +307,46 @@ export default function QRScanner({ onScanSuccess, onScanError }: QRScannerProps
 
       {/* Zoom slider control - below the camera */}
       {supportsZoom && isScanning && !error && !hasScanned && (
-        <div
-          className="bg-gray-800 bg-opacity-90 backdrop-blur-sm rounded-lg p-4"
-          onTouchStart={(e) => e.stopPropagation()}
-          onTouchMove={(e) => e.stopPropagation()}
-        >
+        <div className="bg-gray-800 bg-opacity-90 backdrop-blur-sm rounded-lg p-4">
           <div className="flex items-center gap-3">
             <span className="text-white text-sm font-medium whitespace-nowrap">
               {zoomLevel.toFixed(1)}x
             </span>
             <div className="flex-1 py-2">
-              <input
-                type="range"
-                min="1"
-                max={maxZoom}
-                step="0.1"
-                value={zoomLevel}
-                onChange={handleSliderChange}
-                onInput={handleSliderInput}
-                onTouchStart={(e) => {
-                  console.log('[SCANNER] Touch start on slider');
-                  e.stopPropagation();
-                }}
-                onTouchMove={(e) => {
-                  console.log('[SCANNER] Touch move on slider');
-                  e.stopPropagation();
-                }}
-                onMouseDown={() => {
-                  console.log('[SCANNER] Mouse down on slider');
-                }}
-                className="slider-thumb w-full"
+              {/* Custom draggable slider for Safari compatibility */}
+              <div
+                ref={sliderRef}
+                className="relative h-8 flex items-center cursor-pointer select-none"
+                onMouseDown={handleSliderMouseDown}
+                onMouseMove={handleSliderMouseMove}
+                onTouchStart={handleSliderTouchStart}
+                onTouchMove={handleSliderTouchMove}
+                role="slider"
                 aria-label="Zoom level"
-              />
+                aria-valuemin={1}
+                aria-valuemax={maxZoom}
+                aria-valuenow={zoomLevel}
+                tabIndex={0}
+              >
+                {/* Track */}
+                <div className="absolute inset-y-0 left-0 right-0 flex items-center">
+                  <div className="w-full h-2 bg-gray-600 rounded-full">
+                    {/* Filled portion */}
+                    <div
+                      className="h-full bg-indigo-500 rounded-full transition-all"
+                      style={{ width: `${((zoomLevel - 1) / (maxZoom - 1)) * 100}%` }}
+                    />
+                  </div>
+                </div>
+                {/* Thumb */}
+                <div
+                  className="absolute w-7 h-7 bg-indigo-600 border-3 border-white rounded-full shadow-lg z-10 transform -translate-x-1/2 transition-transform"
+                  style={{
+                    left: `${((zoomLevel - 1) / (maxZoom - 1)) * 100}%`,
+                    transform: `translateX(-50%) ${isDragging ? 'scale(1.1)' : 'scale(1)'}`,
+                  }}
+                />
+              </div>
             </div>
             <span className="text-white text-xs opacity-70 whitespace-nowrap">
               Zoom
