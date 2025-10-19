@@ -196,72 +196,73 @@ export default function QRScanner({ onScanSuccess, onScanError }: QRScannerProps
   };
 
   return (
-    <div className="relative bg-black rounded-lg overflow-hidden">
-      <video
-        ref={videoRef}
-        className="w-full rounded-lg"
-        style={{
-          maxHeight: '400px',
-          minHeight: '300px',
-          objectFit: 'cover',
-        }}
-        autoPlay
-        playsInline
-        muted
-      />
-      {error && (
-        <div className="absolute top-4 left-4 right-4 bg-red-500 text-white p-3 rounded-lg text-sm z-10">
-          {error}
-        </div>
-      )}
-      {isScanning && !error && !hasScanned && (
-        <div className="absolute bottom-4 left-0 right-0 text-center z-10">
-          <div className="inline-block bg-black bg-opacity-70 text-white px-4 py-2 rounded-lg text-sm">
-            📷 Point camera at QR code
+    <div className="space-y-4">
+      <div className="relative bg-black rounded-lg overflow-hidden">
+        <video
+          ref={videoRef}
+          className="w-full rounded-lg"
+          style={{
+            maxHeight: '400px',
+            minHeight: '300px',
+            objectFit: 'cover',
+          }}
+          autoPlay
+          playsInline
+          muted
+        />
+        {error && (
+          <div className="absolute top-4 left-4 right-4 bg-red-500 text-white p-3 rounded-lg text-sm z-10">
+            {error}
           </div>
-        </div>
-      )}
-      {/* Zoom slider control */}
-      {supportsZoom && isScanning && !error && !hasScanned && (
-        <div className="absolute bottom-20 left-4 right-4 z-10">
-          <div className="bg-black bg-opacity-70 backdrop-blur-sm rounded-lg p-4">
-            <div className="flex items-center gap-3">
-              <span className="text-white text-sm font-medium whitespace-nowrap">
-                {zoomLevel.toFixed(1)}x
-              </span>
-              <input
-                type="range"
-                min="1"
-                max={maxZoom}
-                step="0.1"
-                value={zoomLevel}
-                onChange={handleSliderChange}
-                className="flex-1 slider-thumb"
-                aria-label="Zoom level"
-              />
-              <span className="text-white text-xs opacity-70 whitespace-nowrap">
-                Zoom
-              </span>
+        )}
+        {isScanning && !error && !hasScanned && (
+          <div className="absolute bottom-4 left-0 right-0 text-center z-10">
+            <div className="inline-block bg-black bg-opacity-70 text-white px-4 py-2 rounded-lg text-sm">
+              📷 Point camera at QR code
             </div>
           </div>
-        </div>
-      )}
-      {hasScanned && (
-        <div className="absolute inset-0 bg-green-500 bg-opacity-20 flex items-center justify-center z-10">
-          <div className="bg-green-600 text-white px-6 py-3 rounded-lg text-sm font-semibold">
-            ✓ QR Code Detected!
+        )}
+        {hasScanned && (
+          <div className="absolute inset-0 bg-green-500 bg-opacity-20 flex items-center justify-center z-10">
+            <div className="bg-green-600 text-white px-6 py-3 rounded-lg text-sm font-semibold">
+              ✓ QR Code Detected!
+            </div>
           </div>
-        </div>
-      )}
-      {/* Scanning frame overlay */}
-      {!error && (
-        <div className="absolute inset-0 pointer-events-none z-5">
-          <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-64 h-64 border-4 border-indigo-500 rounded-lg">
-            {/* Corner markers */}
-            <div className="absolute top-0 left-0 w-8 h-8 border-t-4 border-l-4 border-white"></div>
-            <div className="absolute top-0 right-0 w-8 h-8 border-t-4 border-r-4 border-white"></div>
-            <div className="absolute bottom-0 left-0 w-8 h-8 border-b-4 border-l-4 border-white"></div>
-            <div className="absolute bottom-0 right-0 w-8 h-8 border-b-4 border-r-4 border-white"></div>
+        )}
+        {/* Scanning frame overlay */}
+        {!error && (
+          <div className="absolute inset-0 pointer-events-none z-5">
+            <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-64 h-64 border-4 border-indigo-500 rounded-lg">
+              {/* Corner markers */}
+              <div className="absolute top-0 left-0 w-8 h-8 border-t-4 border-l-4 border-white"></div>
+              <div className="absolute top-0 right-0 w-8 h-8 border-t-4 border-r-4 border-white"></div>
+              <div className="absolute bottom-0 left-0 w-8 h-8 border-b-4 border-l-4 border-white"></div>
+              <div className="absolute bottom-0 right-0 w-8 h-8 border-b-4 border-r-4 border-white"></div>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Zoom slider control - below the camera */}
+      {supportsZoom && isScanning && !error && !hasScanned && (
+        <div className="bg-gray-800 bg-opacity-90 backdrop-blur-sm rounded-lg p-4">
+          <div className="flex items-center gap-3">
+            <span className="text-white text-sm font-medium whitespace-nowrap">
+              {zoomLevel.toFixed(1)}x
+            </span>
+            <input
+              type="range"
+              min="1"
+              max={maxZoom}
+              step="0.1"
+              value={zoomLevel}
+              onChange={handleSliderChange}
+              className="flex-1 slider-thumb"
+              aria-label="Zoom level"
+            />
+            <span className="text-white text-xs opacity-70 whitespace-nowrap">
+              Zoom
+            </span>
           </div>
         </div>
       )}
