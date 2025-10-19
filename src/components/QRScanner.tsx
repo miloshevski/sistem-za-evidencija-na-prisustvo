@@ -192,6 +192,13 @@ export default function QRScanner({ onScanSuccess, onScanError }: QRScannerProps
 
   const handleSliderChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const newZoom = parseFloat(e.target.value);
+    console.log('[SCANNER] Slider changed to:', newZoom);
+    handleZoomChange(newZoom);
+  };
+
+  const handleSliderInput = (e: React.FormEvent<HTMLInputElement>) => {
+    const newZoom = parseFloat((e.target as HTMLInputElement).value);
+    console.log('[SCANNER] Slider input:', newZoom);
     handleZoomChange(newZoom);
   };
 
@@ -257,8 +264,15 @@ export default function QRScanner({ onScanSuccess, onScanError }: QRScannerProps
               step="0.1"
               value={zoomLevel}
               onChange={handleSliderChange}
+              onInput={handleSliderInput}
               className="flex-1 slider-thumb"
               aria-label="Zoom level"
+              style={{
+                WebkitAppearance: 'none',
+                appearance: 'none',
+                minHeight: '24px',
+                touchAction: 'none'
+              }}
             />
             <span className="text-white text-xs opacity-70 whitespace-nowrap">
               Zoom
