@@ -249,7 +249,7 @@ export async function POST(request: NextRequest) {
 
       return NextResponse.json({
         valid: false,
-        reason: `You are too far from the professor (${distance_m.toFixed(0)}m away, max ${GPS_TOLERANCE_METERS}m)`,
+        reason: 'You are too far from the professor',
       });
     }
 
@@ -315,7 +315,6 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({
       valid: true,
       message: 'Attendance recorded successfully',
-      distance_m: Math.round(distance_m),
     });
   } catch (error) {
     console.error('Scan submission error:', error);

@@ -305,11 +305,6 @@ export default function StudentScanPage() {
                   {result.message ||
                     "Your attendance has been successfully recorded."}
                 </p>
-                {result.distance_m !== undefined && (
-                  <p className="mt-1 text-xs text-gray-500">
-                    Distance from professor: {result.distance_m}m
-                  </p>
-                )}
                 <button
                   onClick={reset}
                   className="mt-6 w-full py-2 px-4 border border-transparent rounded-md text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700"
