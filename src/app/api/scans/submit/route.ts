@@ -186,36 +186,10 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    // Validation 7: Check if server nonce has already been used
-    const { data: usedNonce } = await supabaseAdmin
-      .from('used_server_nonces')
-      .select('server_nonce')
-      .eq('server_nonce', server_nonce)
-      .single();
-
-    if (usedNonce) {
-      await logInvalidScan({
-        session_id,
-        student_index,
-        name,
-        surname,
-        client_lat,
-        client_lon,
-        client_ts,
-        scanned_at_server,
-        device_id,
-        server_nonce,
-        client_nonce,
-        app_version,
-        reason: 'Server nonce has already been used (possible replay attack)',
-        qr_token: token,
-      });
-
-      return NextResponse.json({
-        valid: false,
-        reason: 'This QR code has already been used',
-      });
-    }
+    // Validation 7 removed: Server nonce check is not needed because:
+    // - Validation 4 already prevents same device from scanning twice per session
+    // - QR tokens expire after 10 seconds (Validation 6)
+    // - Multiple students SHOULD be able to scan the same QR code
 
     // Validation 8: Validate timestamp (client_ts should be close to server time)
     const clientTimestamp = new Date(client_ts).getTime();
@@ -333,13 +307,10 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Mark server nonce as used
-    await supabaseAdmin
-      .from('used_server_nonces')
-      .insert({
-        server_nonce,
-        session_id,
-      });
+    // Server nonce tracking removed - not needed because:
+    // - Device tracking already prevents duplicate scans per device
+    // - QR tokens expire after 10 seconds
+    // - Multiple students need to scan the same QR code
 
     return NextResponse.json({
       valid: true,
